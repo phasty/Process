@@ -1,0 +1,24 @@
+{
+    "name" : "phasty/process",
+    "description" : "PHP for asynchronous task execution",
+    "keywords" : ["php", "task", "process"],
+    "authors" : [
+        {
+            "name" : "Dmitry Cheremnykh",
+            "email" : "lockalister@gmail.com"
+        }
+    ],
+    "require" : {
+        "phasty/log"    : "0.1.*@dev",
+        "phasty/events" : "0.1.*@dev",
+        "phasty/stream" : "0.1.*@dev"
+    },
+    "require-dev" : {
+        "phpunit/phpunit : "4.0.*"
+    },
+    "autoload" : {
+        "psr-4" : {
+            "Phasty\\Process\\" : "src"
+        }
+    }
+}
