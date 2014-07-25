@@ -51,7 +51,7 @@ After execution you should see:
     stopped
 
 You can receive event "error" in parent process on child object in case
-of catchable error occured like division by zero and so on
+of catchable error occured or signal (including SIGTERM, SIGFAULT etc)
 
 Coming soon:
 ------------
@@ -60,4 +60,3 @@ Coming soon:
 2. Getting result code
 3. Bi-directional link (sending commands to child)
 4. Getting stop reason (normal, signals like segmentation fault and so on)
-5. Catching error on child process signalled (now you just get "stop" event)
