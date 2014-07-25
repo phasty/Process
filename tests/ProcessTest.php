@@ -82,5 +82,6 @@ class ProcessTest extends \PHPUnit_Framework_TestCase {
         $streamSet->listen();
         $this->assertTrue($stopped, "Process should be stopped, but it wasn't");
         $this->assertTrue($errored, "Process should catch error, but it hasn't");
+        $this->assertTrue($process->isSignaled(), "Process was signaled, but says he didn't");
     }
 }

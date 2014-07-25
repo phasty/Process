@@ -45,6 +45,10 @@ namespace Phasty\Process\Child {
          */
         protected $proc = null;
 
+        protected $procStatus = null;
+
+        protected $exitCode = null;
+
         /*
          *
          */
@@ -62,6 +66,9 @@ namespace Phasty\Process\Child {
             $this->inStream->on("close", function() {
                 // If stream is closed, but no STOP event received
                 if ($this->isProcOpen()) {
+                    $pid = $this->getPID();
+                    $sig = $this->getTermSig();
+                    log::error("Unexpected child death ($pid): " . ($sig ? "signaled $sig" : "unknown reason") );
                     $this->trigger("error");
                     $this->trigger("stop");
                 }
@@ -153,19 +160,43 @@ $this->on(null, function($event) {
         }
 
         public function getPID() {
-            return $this->pid;
+            return $this->getProcInfo("pid");
         }
 
         public function isRunning() {
-            return $this->running;
+            return $this->getProcInfo("running", false);
         }
 
-        public function getOutputPipe() {
-            return self::getOutputPipeByPid($this->pid);
+        public function isSignaled() {
+            return $this->getProcInfo("signaled", false);
         }
 
-        public static function getOutputPipeByPid($pid) {
-            return "/tmp/proc-events/$pid";
+        public function getTermSig() {
+            return $this->getProcInfo("signaled", false) ? $this->getProcInfo("termsig") : null;
+        }
+
+        public function getStopSig() {
+            return $this->getProcInfo("stopped", false) ? $this->getProcInfo("stopsig") : null;
+        }
+
+        public function isStopped() {
+            return $this->getProcInfo("stopped", false);
+        }
+
+        public function getExitCode() {
+            return $this->getProcInfo("exitcode", false);
+        }
+
+        protected function getProcInfo($field, $cached = true) {
+            if (!$cached || !$this->procStatus) {
+                $prevProcStatus   = $this->procStatus;
+                $this->procStatus = proc_get_status($this->proc);
+                // according http://php.net/manual/ru/function.proc-get-status.php exitcode is correct once after process stopped
+                if ($prevProcStatus && !$prevProcStatus["running"]) {
+                    $this->procStatus[ "exitcode" ] = $prevProcStatus[ "exitcode" ];
+                }
+            }
+            return $this->procStatus[ $field ];
         }
     }
 }
