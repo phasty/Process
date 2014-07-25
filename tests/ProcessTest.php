@@ -3,7 +3,7 @@ use Phasty\ProcessTests\ChildProc;
 use Phasty\Stream\StreamSet;
 use Phasty\Process\Child\Controller;
 class ProcessTest extends \PHPUnit_Framework_TestCase {
-    public function testProcEvents() {
+/*    public function testProcEvents() {
         $started = 0;
         $errored = 0;
         $customCalled = null;
@@ -64,24 +64,35 @@ class ProcessTest extends \PHPUnit_Framework_TestCase {
         $process->increaseA();
         StreamSet::instance()->listen();
         $this->assertEquals(2, $actual, "В поток не был передан экземпляр класса как аргумент");
-    }
+    }*/
     public function testWhenUnexcpectedChildDeath() {
-        $process = new Controller($obj = new ChildProc);
         $streamSet = \Phasty\Stream\StreamSet::instance();
         $streamSet->addTimer(new \Phasty\Stream\Timer(1, 0, function() use ($streamSet) {
             $streamSet->stop();
         }));
-        $stopped = $errored = false;
-        $process->on("stop", function () use (&$stopped) {
-            $stopped = true;
-        });
-        $process->on("error", function () use (&$errored) {
-            $errored = true;
-        });
-        $process->startUnexpectedDeath();
+        $times = 2;
+        $stopped = $errored = 0;
+        $procs = [];
+        for ($i = 0; $i < $times; $i++) {
+            $procs []=  new Controller(new ChildProc);
+            $procs[ $i ]->on("stop", function () use (&$stopped) {
+                $stopped++;
+            });
+            $procs[ $i ]->on("error", function ($event) use (&$errored) {
+                $errored++;
+            });
+            $procs[ $i ]->sleep();
+            $streamSet->addTimer(new \Phasty\Stream\Timer(0, 1000, function() use ($procs, $i) {
+echo "kill please " . $procs[ $i ]->getPID() . "\n";
+                $procs[ $i ]->kill();
+ob_flush();
+            }));
+        }
         $streamSet->listen();
-        $this->assertTrue($stopped, "Process should be stopped, but it wasn't");
-        $this->assertTrue($errored, "Process should catch error, but it hasn't");
-        $this->assertTrue($process->isSignaled(), "Process was signaled, but says he didn't");
+        $this->assertEqual($times, $stopped, "Process should be stopped, but it wasn't");
+        $this->assertTrue($times, $errored, "Process should catch error, but it hasn't");
+        for ($i = 1; $i <= $times; $i++) {
+            $this->assertTrue($procs[ $i - 1 ]->isSignaled(), "Process [$i] was signaled, but says he didn't");
+        }
     }
 }

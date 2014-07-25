@@ -20,8 +20,8 @@ namespace Phasty\ProcessTests {
         public function increaseA() {
             $this->trigger("increase", $this->a + 1);
         }
-        public function startUnexpectedDeath() {
-            posix_kill(getmypid(), 9);
+        public function sleep() {
+            sleep(60);
         }
     }
 }

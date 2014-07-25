@@ -47,8 +47,6 @@ namespace Phasty\Process\Child {
 
         protected $procStatus = null;
 
-        protected $exitCode = null;
-
         /*
          *
          */
@@ -64,22 +62,28 @@ namespace Phasty\Process\Child {
             $this->inStream = new \Phasty\Stream\Stream();
             $this->outStream = new \Phasty\Stream\Stream();
             $this->inStream->on("close", function() {
-                // If stream is closed, but no STOP event received
+usleep(100);
+var_dump(proc_get_status($this->proc));
+die;
+echo "in stream closed\n";
+                // If stream is closed, but no STOP event received 
                 if ($this->isProcOpen()) {
-                    $pid = $this->getPID();
-                    $sig = $this->getTermSig();
-                    log::error("Unexpected child death ($pid): " . ($sig ? "signaled $sig" : "unknown reason") );
+echo "proc is opened\n";
+//                    $pid = $this->getPID();
+ //                   $sig = $this->getTermSig();
+
+//                    log::error("Unexpected child death ($pid): " . ($sig ? "signaled $sig" : "unknown reason") );
+
                     $this->trigger("error");
                     $this->trigger("stop");
                 }
+echo "instream closed end\n";
             });
 
             $this->streamReader = new \Phasty\Events\StreamReader($this->inStream);
 
             $this->streamReader->addListener($this);
-$this->on(null, function($event) {
-    log::info("Event on child process " . $this->getPID() . ": " . $event->getName());
-});
+
             if ($job instanceof \Phasty\Events\Eventable) {
                 $this->streamReader->addListener($job);
             }
@@ -87,10 +91,12 @@ $this->on(null, function($event) {
             $streamSet->addReadStream($this->inStream);
 
             $this->on("start", function () {
+echo "started\n";
                 $this->running = true;
             });
 
             $this->on("error", function() {
+echo "error\n";
                 $this->error = true;
             });
 
@@ -98,6 +104,7 @@ $this->on(null, function($event) {
         }
 
         protected function onStop() {
+echo "onStop\n";
             if (!$this->isProcOpen()) {
                 return;
             }
@@ -109,8 +116,12 @@ $this->on(null, function($event) {
         }
 
         protected function close() {
+echo "Close\n";
             if ($this->isProcOpen()) {
+echo "proc is open, read proc info\n";
+                $this->getProcInfo();
                 $proc = $this->proc;
+echo "set proc to null\n";
                 $this->proc = null;
             }
             $this->running = false;
@@ -134,7 +145,7 @@ $this->on(null, function($event) {
                 $error = $e;
             });
             $this->proc =  proc_open(
-                realpath(__DIR__ . "/../async.php") . " $job $method $arguments",
+                "exec php -f " . realpath(__DIR__ . "/../async.php") . " $job $method $arguments",
                 [
                     0 => ["pipe", "r"],
                     1 => ["pipe", "w"],
@@ -160,43 +171,51 @@ $this->on(null, function($event) {
         }
 
         public function getPID() {
-            return $this->getProcInfo("pid");
+            return $this->getProcInfo("pid", true);
         }
 
         public function isRunning() {
-            return $this->getProcInfo("running", false);
+            return $this->getProcInfo("running");
         }
 
         public function isSignaled() {
-            return $this->getProcInfo("signaled", false);
+            return !$this->getProcInfo("signaled");
         }
 
         public function getTermSig() {
-            return $this->getProcInfo("signaled", false) ? $this->getProcInfo("termsig") : null;
+            return $this->getProcInfo("termsig");
         }
 
         public function getStopSig() {
-            return $this->getProcInfo("stopped", false) ? $this->getProcInfo("stopsig") : null;
+            return $this->getProcInfo("stopsig");
         }
 
         public function isStopped() {
-            return $this->getProcInfo("stopped", false);
+            return $this->getProcInfo("stopped");
         }
 
         public function getExitCode() {
-            return $this->getProcInfo("exitcode", false);
+            return $this->getProcInfo("exitcode");
         }
 
-        protected function getProcInfo($field, $cached = true) {
-            if (!$cached || !$this->procStatus) {
-                $prevProcStatus   = $this->procStatus;
+        protected function getProcInfo($field = null, $fromCache = false) {
+            if ($fromCache && !$this->procStatus ||
+               !$fromCache && (!$this->procStatus || $this->procStatus[ "running" ])) {
+                $prevProcStatus = $this->procStatus;
                 $this->procStatus = proc_get_status($this->proc);
                 // according http://php.net/manual/ru/function.proc-get-status.php exitcode is correct once after process stopped
-                if ($prevProcStatus && !$prevProcStatus["running"]) {
+                if ($prevProcStatus && !$prevProcStatus[ "running" ]) {
                     $this->procStatus[ "exitcode" ] = $prevProcStatus[ "exitcode" ];
                 }
             }
-            return $this->procStatus[ $field ];
+var_dump(["fromCache"=>$fromCache, "running" => $this->procStatus["running"], "signaled" => $this->procStatus["signaled"]]);
+die;
+            return $field ? $this->procStatus[ $field ] : null;
+        }
+
+        public function kill($sig = 9) {
+echo "kill\n";
+            return proc_terminate($this->proc, $sig);
         }
     }
 }
