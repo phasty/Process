@@ -1,10 +1,9 @@
 <?php
-use Daem\Tests\Process\ChildProc;
-use Daem\Stream\StreamSet;
-use Daem\Process\Child\Controller;
+use Phasty\ProcessTests\ChildProc;
+use Phasty\Stream\StreamSet;
+use Phasty\Process\Child\Controller;
 class ProcessTest extends \PHPUnit_Framework_TestCase {
     public function testProcEvents() {
-define("WEB_SERVICE_LOG_DIR", "WEB_SERVICE_LOG_DIR");
         $started = 0;
         $errored = 0;
         $customCalled = null;
@@ -68,8 +67,8 @@ define("WEB_SERVICE_LOG_DIR", "WEB_SERVICE_LOG_DIR");
     }
     public function testWhenUnexcpectedChildDeath() {
         $process = new Controller($obj = new ChildProc);
-        $streamSet = \Daem\Stream\StreamSet::instance();
-        $streamSet->addTimer(new \Daem\Stream\Timer(1, 0, function() use ($streamSet) {
+        $streamSet = \Phasty\Stream\StreamSet::instance();
+        $streamSet->addTimer(new \Phasty\Stream\Timer(1, 0, function() use ($streamSet) {
             $streamSet->stop();
         }));
         $stopped = $errored = false;
@@ -83,6 +82,5 @@ define("WEB_SERVICE_LOG_DIR", "WEB_SERVICE_LOG_DIR");
         $streamSet->listen();
         $this->assertTrue($stopped, "Process should be stopped, but it wasn't");
         $this->assertTrue($errored, "Process should catch error, but it hasn't");
-        $this->assertTrue($process->isSignaled(), "Process was signaled, but says he didn't");
     }
 }

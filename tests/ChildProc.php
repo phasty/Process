@@ -1,6 +1,6 @@
 <?php
-namespace Daem\Tests\Process {
-    class ChildProc extends \Daem\Process\Child\CallableClass {
+namespace Phasty\ProcessTests {
+    class ChildProc extends \Phasty\Process\Child\CallableClass {
         static public $SEND_COUNT = 100;
         static public $SEND_DATA = [
             "a" => 1

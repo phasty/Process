@@ -2,6 +2,8 @@
     "name" : "phasty/process",
     "description" : "PHP for asynchronous task execution",
     "keywords" : ["php", "task", "process"],
+    "type" : "library",
+    "license" : "MIT",
     "authors" : [
         {
             "name" : "Dmitry Cheremnykh",
@@ -20,5 +22,13 @@
         "psr-4" : {
             "Phasty\\Process\\" : "src"
         }
+    },
+    "autoload-dev" : {
+        "psr-4" : {
+            "Phasty\\ProcessTests\\" : "tests"
+        }
+    },
+    "scripts" : {
+        "test" : "vendor/phpunit/phpunit/phpunit --bootstrap vendor/autoload.php tests"
     }
 }
