@@ -1,8 +1,15 @@
 #!/usr/bin/php
 <?php
+$dir = dirname(dirname(dirname(__FILE__)));
+if (pathinfo($dir, PATHINFO_BASENAME) !== "vendor") {
+    $dir .= "/Process/vendor";
+}
+include_once "$dir/autoload.php";
+
 if (file_exists($config = dirname(__FILE__) . "/config.php")) {
     require $config;
 }
+
 if ($argc < 3) {
     echo("Wrong arguments count");
     exit(1);
