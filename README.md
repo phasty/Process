@@ -56,7 +56,7 @@ of catchable error occured or signal (including SIGTERM, SIGFAULT etc)
 Coming soon:
 ------------
 
-1. Killing process with $process->kill();
-2. Getting result code
+~~1. Killing process with $process->kill();~~
+~~2. Getting result code~~
 3. Bi-directional link (sending commands to child)
-4. Getting stop reason (normal, signals like segmentation fault and so on)
+~~4. Getting stop reason (normal, signals like segmentation fault and so on)~~
