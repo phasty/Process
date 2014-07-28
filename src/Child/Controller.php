@@ -166,7 +166,7 @@ namespace Phasty\Process\Child {
             $cmd = escapeshellarg($cmd);
             $output = null;
             $return = null;
-            exec("bash -c $cmd > /dev/null 2>&1 & //echo $!", $output, $return);
+            exec("bash -c $cmd > /dev/null 2>&1 & echo $!", $output, $return);
             return $output[ 0 ];
 
         }
