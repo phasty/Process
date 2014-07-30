@@ -11,9 +11,9 @@
         }
     ],
     "require" : {
-        "phasty/log"    : "0.1.*@dev",
-        "phasty/events" : "0.1.*@dev",
-        "phasty/stream" : "0.1.*@dev"
+        "phasty/log"    : ">=0.1",
+        "phasty/events" : ">=0.1",
+        "phasty/stream" : ">=0.1"
     },
     "require-dev" : {
         "phpunit/phpunit" : "4.0.*"

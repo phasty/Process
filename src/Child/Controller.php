@@ -68,7 +68,7 @@ namespace Phasty\Process\Child {
             $this->streamReader->addListener($this);
 
             if ($job instanceof \Phasty\Events\Eventable) {
-                $this->streamReader->addListener($job);
+                $this->on(null, $job);
             }
 
             $streamSet->addReadStream($this->inStream);
