@@ -52,7 +52,7 @@ namespace Phasty\Process\Child {
          */
         public function __construct($job, \Phasty\Stream\StreamSet $streamSet = null) {
             if (!is_subclass_of($job, "\\Phasty\\Process\\Child\\CallableClass")) {
-                throw new \Exception("Job class must implement \\Phasty\\Process\\Child");
+                throw new \Exception("Job class must implement \\Phasty\\Process\\Child\\CallableClass");
             }
             if (!$streamSet) {
                 $streamSet = \Phasty\Stream\StreamSet::instance();
@@ -91,9 +91,11 @@ namespace Phasty\Process\Child {
                 $pid = $this->getPID();
                 $sig = $this->getTermSig();
 
-                log::error("Unexpected child death ($pid): " . ($sig ? "signaled $sig" : "unknown reason") );
+                $error = "Unexpected child death ($pid): " . ($sig ? "signaled $sig" : "unknown reason");
 
-                $this->trigger("error");
+                log::error($error);
+
+                $this->trigger("error", $error);
                 $this->trigger("stop");
             }
         }
@@ -217,6 +219,10 @@ namespace Phasty\Process\Child {
                 throw new \Exception("Process is not running");
             }
             return proc_terminate($this->proc, $sig);
+        }
+
+        public function serialize() {
+            return null;
         }
     }
 }
