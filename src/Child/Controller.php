@@ -47,10 +47,12 @@ namespace Phasty\Process\Child {
 
         protected $procStatus = null;
 
+        protected $requiredFiles;
+
         /*
          *
          */
-        public function __construct($job, \Phasty\Stream\StreamSet $streamSet = null) {
+        public function __construct($job, array $requiredFiles = [], \Phasty\Stream\StreamSet $streamSet = null) {
             if (!is_subclass_of($job, "\\Phasty\\Process\\Child\\CallableClass")) {
                 throw new \Exception("Job class must implement \\Phasty\\Process\\Child\\CallableClass");
             }
@@ -82,6 +84,8 @@ namespace Phasty\Process\Child {
             });
 
             $this->on("stop", [ $this, "onStop" ]);
+
+            $this->requiredFiles = $requiredFiles;
         }
 
         protected function onInStreamClose() {
@@ -140,15 +144,16 @@ namespace Phasty\Process\Child {
         }
 
         public function execute($method, $arguments) {
-            $job       = escapeshellarg(base64_encode(serialize($this->job)));
-            $arguments = $arguments ? escapeshellarg(base64_encode(serialize($arguments))) : "";
-            $method    = escapeshellarg(base64_encode(serialize($method)));
-            $error     = null;
+            $job           = escapeshellarg(base64_encode(serialize($this->job)));
+            $arguments     = $arguments ? escapeshellarg(base64_encode(serialize($arguments))) : "";
+            $method        = escapeshellarg(base64_encode(serialize($method)));
+            $requiredFiles = escapeshellarg(base64_encode(serialize($this->requiredFiles)));
+            $error         = null;
             set_error_handler(function($e) use (&$error) {
                 $error = $e;
             });
             $this->proc =  proc_open(
-                "exec php -f " . realpath(__DIR__ . "/../async.php") . " $job $method $arguments",
+                "exec php -f " . realpath(__DIR__ . "/../async.php") . " $requiredFiles $job $method $arguments",
                 [
                     0 => ["pipe", "r"],
                     1 => ["pipe", "w"],
