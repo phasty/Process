@@ -1,10 +1,12 @@
 #!/usr/bin/php
 <?php
-$dir = dirname(dirname(dirname(__FILE__)));
-if (pathinfo($dir, PATHINFO_BASENAME) !== "vendor") {
-    $dir .= "/Process/vendor";
+$dir = dirname(dirname(__FILE__));
+if (is_file("$dir/vendor/autoload.php")) {
+    $autoloadFile = "$dir/vendor/autoload.php";
+} else {
+    $autoloadFile = dirname(dirname($dir)) . "/autoload.php";
 }
-include_once "$dir/autoload.php";
+include_once $autoloadFile;
 
 if (file_exists($config = dirname(__FILE__) . "/config.php")) {
     require $config;

@@ -11,7 +11,7 @@ class ProcessTest extends \PHPUnit_Framework_TestCase {
         $stopped = 0;
 
         $processes = [];
-        $processCount = 50;
+        $processCount = 100;
         $times = 2;
         for ($j = 0; $j < $times; $j++) {
             for ($i = 0; $i < $processCount; $i++) {
@@ -46,7 +46,7 @@ class ProcessTest extends \PHPUnit_Framework_TestCase {
         StreamSet::instance()->listen();
 
         $this->assertEquals($processCount*$times, $started, "Событие start процесса не было вызвано");
-        $this->assertEquals(0, $errored, "Событие error процесса не было вызвано");
+        $this->assertEquals($processCount*$times, $errored, "Событие error процесса не было вызвано");
         $this->assertEquals(ChildProc::$SEND_DATA, $customCalled, "Неверные данные пришли от процесса");
         $this->assertEquals(ChildProc::$SEND_COUNT*$processCount*$times, $customRepeatCalled, "Кастомное событие обработано неполностью");
         $this->assertEquals($processCount*$times, $onceEvent, "Событие должно быть вызывано " . ($processCount*$times) . " раза");
@@ -66,21 +66,34 @@ class ProcessTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(2, $actual, "В поток не был передан экземпляр класса как аргумент");
     }
     public function testWhenUnexcpectedChildDeath() {
-        $process = new Controller($obj = new ChildProc);
         $streamSet = \Phasty\Stream\StreamSet::instance();
-        $streamSet->addTimer(new \Phasty\Stream\Timer(1, 0, function() use ($streamSet) {
+        $streamSet->addTimer(new \Phasty\Stream\Timer(10, 0, function() use ($streamSet) {
             $streamSet->stop();
         }));
-        $stopped = $errored = false;
-        $process->on("stop", function () use (&$stopped) {
-            $stopped = true;
-        });
-        $process->on("error", function () use (&$errored) {
-            $errored = true;
-        });
-        $process->startUnexpectedDeath();
+        $times = 300;
+        $stopped = $errored = 0;
+        $procs = [];
+        for ($i = 0; $i < $times; $i++) {
+            $procs []=  new Controller(new ChildProc);
+            $procs[ $i ]->on("stop", function () use (&$stopped) {
+                $stopped++;
+            });
+            $procs[ $i ]->on("error", function ($event) use (&$errored) {
+                $errored++;
+            });
+            $procs[ $i ]->sleep();
+            $streamSet->addTimer($timers[ $i ] = new \Phasty\Stream\Timer(0, 100, function($event, $timer) use ($procs, $i) {
+                $procs[ $i ]->kill();
+                $timer->cancel();
+            }));
+        }
         $streamSet->listen();
-        $this->assertTrue($stopped, "Process should be stopped, but it wasn't");
-        $this->assertTrue($errored, "Process should catch error, but it hasn't");
+        $this->assertEquals($times, $stopped, "Process should be stopped, but it wasn't");
+        $this->assertEquals($times, $errored, "Process should catch error, but it hasn't");
+        for ($i = 1; $i <= $times; $i++) {
+            $signaled = $procs[ $i - 1 ]->isSignaled();
+
+            $this->assertTrue($signaled, "Process [$i] was signaled, but says he wasn't");
+        }
     }
 }

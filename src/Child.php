@@ -14,8 +14,6 @@ namespace Phasty\Process {
             $this->on(null, function($event) {
                 log::info("Event {$event->getName()} on process");
                 $this->outStream->write($event);
-                return;
-                \Phasty\Stream\NamedPipe\Mx1::send($this->eventPipe(), $event);
             });
             $this->trigger("start", getmypid());
             $this->setHandlers();
@@ -37,13 +35,11 @@ namespace Phasty\Process {
         }
 
         public function errorHandler($errno, $errstr, $errfile, $errline, array $errcontext) {
-//            $this->trigger("warning", $warning = compact("errno", "errstr", "errfile", "errline"));
-$warning = compact("errno", "errstr", "errfile", "errline");
-            log::info(var_export($warning, 1));
-        }
-
-        protected function eventPipe() {
-            return Child\Controller::getOutputPipeByPid(getmypid());
+            $error = compact("errno", "errstr", "errfile", "errline");
+            if ((int)$errno & (E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_WARNING)) {
+                $this->trigger("error", $error);
+            }
+            log::error(var_export($error, 1));
         }
 
         static public function getClass() {

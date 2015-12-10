@@ -45,12 +45,14 @@ namespace Phasty\Process\Child {
          */
         protected $proc = null;
 
+        protected $procStatus = null;
+
         /*
          *
          */
         public function __construct($job, \Phasty\Stream\StreamSet $streamSet = null) {
             if (!is_subclass_of($job, "\\Phasty\\Process\\Child\\CallableClass")) {
-                throw new \Exception("Job class must implement \\Phasty\\Process\\Child");
+                throw new \Exception("Job class must implement \\Phasty\\Process\\Child\\CallableClass");
             }
             if (!$streamSet) {
                 $streamSet = \Phasty\Stream\StreamSet::instance();
@@ -59,22 +61,14 @@ namespace Phasty\Process\Child {
 
             $this->inStream = new \Phasty\Stream\Stream();
             $this->outStream = new \Phasty\Stream\Stream();
-            $this->inStream->on("close", function() {
-                // If stream is closed, but no STOP event received
-                if ($this->isProcOpen()) {
-                    $this->trigger("error");
-                    $this->trigger("stop");
-                }
-            });
+            $this->inStream->on("close", [ $this, "onInStreamClose" ]);
 
             $this->streamReader = new \Phasty\Events\StreamReader($this->inStream);
 
             $this->streamReader->addListener($this);
-$this->on(null, function($event) {
-    log::info("Event on child process " . $this->getPID() . ": " . $event->getName());
-});
+
             if ($job instanceof \Phasty\Events\Eventable) {
-                $this->streamReader->addListener($job);
+                $this->on(null, $job);
             }
 
             $streamSet->addReadStream($this->inStream);
@@ -90,6 +84,22 @@ $this->on(null, function($event) {
             $this->on("stop", [ $this, "onStop" ]);
         }
 
+        protected function onInStreamClose() {
+            $this->inStream->off("close", [ $this, "onInStreamClose" ]);
+            // If stream is closed, but no STOP event received
+            if ($this->isProcOpen()) {
+                $pid = $this->getPID();
+                $sig = $this->getTermSig();
+
+                $error = "Unexpected child death ($pid): " . ($sig ? "signaled $sig" : "unknown reason");
+
+                log::error($error);
+
+                $this->trigger("error", $error);
+                $this->trigger("stop");
+            }
+        }
+
         protected function onStop() {
             if (!$this->isProcOpen()) {
                 return;
@@ -103,8 +113,19 @@ $this->on(null, function($event) {
 
         protected function close() {
             if ($this->isProcOpen()) {
-                $proc = $this->proc;
-                $this->proc = null;
+                // Sometimes php proc_get_status returns that process is running when it really was kill by signal
+                if (!$this->isRunning()) {
+                    $proc = $this->proc;
+                    $this->proc = null;
+                } else {
+                    /*
+                     * This fixes situation when stdout of child process already closed,
+                     * but proc_get_status says that process is still running
+                     */
+                    while ($this->isRunning()) {
+                        usleep(10);
+                    }
+                }
             }
             $this->running = false;
             $this->inStream->close();
@@ -127,7 +148,7 @@ $this->on(null, function($event) {
                 $error = $e;
             });
             $this->proc =  proc_open(
-                realpath(__DIR__ . "/../async.php") . " $job $method $arguments",
+                "exec php -f " . realpath(__DIR__ . "/../async.php") . " $job $method $arguments",
                 [
                     0 => ["pipe", "r"],
                     1 => ["pipe", "w"],
@@ -153,19 +174,55 @@ $this->on(null, function($event) {
         }
 
         public function getPID() {
-            return $this->pid;
+            return $this->getProcInfo("pid", true);
         }
 
         public function isRunning() {
-            return $this->running;
+            return $this->getProcInfo("running");
         }
 
-        public function getOutputPipe() {
-            return self::getOutputPipeByPid($this->pid);
+        public function isSignaled() {
+            return $this->getProcInfo("signaled");
         }
 
-        public static function getOutputPipeByPid($pid) {
-            return "/tmp/proc-events/$pid";
+        public function getTermSig() {
+            return $this->getProcInfo("termsig");
+        }
+
+        public function getStopSig() {
+            return $this->getProcInfo("stopsig");
+        }
+
+        public function isStopped() {
+            return $this->getProcInfo("stopped");
+        }
+
+        public function getExitCode() {
+            return $this->getProcInfo("exitcode");
+        }
+
+        protected function getProcInfo($field = null, $fromCache = false) {
+            if (!$this->procStatus || !$fromCache && $this->procStatus[ "running" ]) {
+                $prevProcStatus = $this->procStatus;
+                $this->procStatus = proc_get_status($this->proc);
+                // Workaround for situation when we couldn't close proc when stream was closed, but proc_get_status returned
+                if (!$this->procStatus["running"]) {
+                    proc_close($this->proc);
+                    $this->proc = null;
+                }
+            }
+            return $field ? $this->procStatus[ $field ] : null;
+        }
+
+        public function kill($sig = 9) {
+            if (is_null($this->proc)) {
+                throw new \Exception("Process is not running");
+            }
+            return proc_terminate($this->proc, $sig);
+        }
+
+        public function serialize() {
+            return null;
         }
     }
 }
