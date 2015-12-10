@@ -8,19 +8,18 @@ if (is_file("$dir/vendor/autoload.php")) {
 }
 include_once $autoloadFile;
 
-if (file_exists($config = dirname(__FILE__) . "/config.php")) {
-    require $config;
-}
-
-if ($argc < 3) {
-    echo("Wrong arguments count");
+if ($argc < 4) {
+    echo("Wrong argument count");
     exit(1);
 }
-$calleeEntity = unserialize(base64_decode($argv[1]));
-$calleeMethod = unserialize(base64_decode($argv[2]));
-$arguments    = $argc > 3 ? unserialize(base64_decode($argv[3])) : [];
-
+$requiredFiles = unserialize(base64_decode($argv[ 1 ]));
+$calleeEntity  = unserialize(base64_decode($argv[ 2 ]));
+$calleeMethod  = unserialize(base64_decode($argv[ 3 ]));
+$arguments     = $argc > 4 ? unserialize(base64_decode($argv[ 4 ])) : [];
 try {
+    foreach($requiredFiles as $requiredFile) {
+        require $requiredFile;
+    }
     if (is_string($calleeEntity)) {
         $calleeEntity = new $calleeEntity();
     }
