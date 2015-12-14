@@ -13,13 +13,13 @@ if ($argc < 4) {
     exit(1);
 }
 $requiredFiles = unserialize(base64_decode($argv[ 1 ]));
+foreach($requiredFiles as $requiredFile) {
+    require $requiredFile;
+}
 $calleeEntity  = unserialize(base64_decode($argv[ 2 ]));
 $calleeMethod  = unserialize(base64_decode($argv[ 3 ]));
 $arguments     = $argc > 4 ? unserialize(base64_decode($argv[ 4 ])) : [];
 try {
-    foreach($requiredFiles as $requiredFile) {
-        require $requiredFile;
-    }
     if (is_string($calleeEntity)) {
         $calleeEntity = new $calleeEntity();
     }
