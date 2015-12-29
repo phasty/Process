@@ -13,7 +13,7 @@
     "require" : {
         "phasty/log"    : "0.1.*",
         "phasty/events" : "0.1.*",
-        "phasty/stream" : "0.1.*"
+        "phasty/stream" : "0.2.*"
     },
     "require-dev" : {
         "phpunit/phpunit" : "4.0.*"
