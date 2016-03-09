@@ -19,13 +19,14 @@ foreach($requiredFiles as $requiredFile) {
 $calleeEntity  = unserialize(base64_decode($argv[ 2 ]));
 $calleeMethod  = unserialize(base64_decode($argv[ 3 ]));
 $arguments     = $argc > 4 ? unserialize(base64_decode($argv[ 4 ])) : [];
+if (is_string($calleeEntity)) {
+    $calleeEntity = new $calleeEntity();
+}
+$child = new \Phasty\Process\Child($calleeEntity);
 try {
-    if (is_string($calleeEntity)) {
-        $calleeEntity = new $calleeEntity();
-    }
-    $child = new \Phasty\Process\Child($calleeEntity);
     call_user_func_array([ $calleeEntity, $calleeMethod ], $arguments);
 } catch (\Exception $e) {
+    $child->trigger("error", $e->getMessage());
     \Phasty\Log\File::error($e->getMessage());
 }
 
